@@ -42,20 +42,20 @@
 const uint8_t PIN_SERVO_ARM     = 3;  // 관절 3개(어깨+팔꿈치+손목) 공통 신호
 const uint8_t PIN_SERVO_GRIPPER = 5;  // 집게 서보
 
-// ------------------------------------------------------------------ 각도 설정 (예시값 - 직접 조정하세요!)
+// ------------------------------------------------------------------ 각도 설정 (실측으로 확정한 값)
 // 기준: 90도 = 팔이 밑판에서 수직 1직선으로 곧게 선 자세
+// 관절은 90도에서 값을 "줄이는 방향"으로만 구부려 사용한다.
 
 // HOME(기본 자세): 곧게 선 자세
 const uint8_t HOME_ARM = 90;
 
-// 관절 안전 범위: 이 범위를 벗어난 목표값은 잘라낸다.
-// 처음에는 좁게 잡고, 실제로 움직여 보며 천천히 넓히는 것이 안전하다.
-const uint8_t MIN_ARM = 30,  MAX_ARM = 150;
-const uint8_t MIN_GRIPPER = 0,  MAX_GRIPPER = 90;
+// 관절 안전 범위: 90(직립) ~ 10(최대 구부림). 이 범위를 벗어난 목표값은 잘라낸다.
+const uint8_t MIN_ARM = 10,  MAX_ARM = 90;
 
-// 집게 각도 (예시값): 실제 집게가 벌어지고 오므라지는 각도로 수정하세요.
-const uint8_t GRIPPER_OPEN   = 10;  // RELEASE (서서히 벌리기)
-const uint8_t GRIPPER_CLOSED = 60;  // GRAB (서서히 오므리기)
+// 집게: 90도 = 오므린 상태(시작), 120도 = 최대로 벌린 상태
+const uint8_t MIN_GRIPPER = 90, MAX_GRIPPER = 120;
+const uint8_t GRIPPER_OPEN   = 120;  // RELEASE (서서히 벌리기)
+const uint8_t GRIPPER_CLOSED = 90;   // GRAB (서서히 오므리기)
 
 // ARM_UP / ARM_DOWN 한 번에 관절이 움직이는 각도 (예시값)
 const uint8_t ARM_STEP_DEGREES = 15;
@@ -67,8 +67,8 @@ const uint16_t SERVO_STEP_INTERVAL_MS = 20;
 Servo servoArm;      // 관절 3개가 이 하나의 신호를 함께 받는다.
 Servo servoGripper;
 
-uint8_t currentArm     = HOME_ARM,     targetArm     = HOME_ARM;
-uint8_t currentGripper = GRIPPER_OPEN, targetGripper = GRIPPER_OPEN;
+uint8_t currentArm     = HOME_ARM,       targetArm     = HOME_ARM;
+uint8_t currentGripper = GRIPPER_CLOSED, targetGripper = GRIPPER_CLOSED;
 
 // 현재 처리 중인 명령 (비어 있으면 대기 상태)
 String activeCommand = "";
@@ -98,11 +98,10 @@ void startCommand(const String &command) {
   } else if (command == "RELEASE") {
     targetGripper = clampAngle(GRIPPER_OPEN, MIN_GRIPPER, MAX_GRIPPER);
   } else if (command == "ARM_UP") {
-    // 관절 각도를 키운다(90 쪽으로 펴거나 반대쪽으로 넘어감).
-    // 방향이 생각과 반대라면 +를 -로 바꾸세요.
+    // 관절 각도를 키워 팔을 편다. (최대 90 = 직립)
     targetArm = clampAngle((int)targetArm + ARM_STEP_DEGREES, MIN_ARM, MAX_ARM);
   } else if (command == "ARM_DOWN") {
-    // 관절 각도를 줄여 팔을 서서히 구부린다.
+    // 관절 각도를 줄여 팔을 서서히 구부린다. (최소 10)
     targetArm = clampAngle((int)targetArm - ARM_STEP_DEGREES, MIN_ARM, MAX_ARM);
   }
   activeCommand = command;
@@ -190,11 +189,11 @@ void setup() {
   servoArm.attach(PIN_SERVO_ARM);
   servoGripper.attach(PIN_SERVO_GRIPPER);
 
-  // 시작 시 HOME 자세(곧게 선 자세)로 이동한다.
+  // 시작 시 HOME 자세(곧게 선 자세, 집게 오므림)로 이동한다.
   // 주의: 전원을 켠 직후에는 팔이 어떤 자세든 HOME까지 한 번에 움직이므로
   //       주변에 손이나 물건이 없는지 확인한 뒤 전원을 연결하세요.
   servoArm.write(HOME_ARM);
-  servoGripper.write(GRIPPER_OPEN);
+  servoGripper.write(GRIPPER_CLOSED);
 
   Serial.println(F("READY"));
 }
