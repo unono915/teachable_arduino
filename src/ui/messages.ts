@@ -14,8 +14,8 @@ export const COMMAND_LABELS: Record<string, string> = {
   RELEASE: '물체 놓기',
   ARM_UP: '팔 올리기',
   ARM_DOWN: '팔 내리기',
-  BASE_LEFT: '받침대 왼쪽 회전',
-  BASE_RIGHT: '받침대 오른쪽 회전',
+  WRIST_UP: '손목 올리기',
+  WRIST_DOWN: '손목 내리기',
   STOP: '동작 중지',
 };
 

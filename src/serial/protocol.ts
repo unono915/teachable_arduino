@@ -6,8 +6,8 @@ export const BUILTIN_COMMANDS = [
   'RELEASE',
   'ARM_UP',
   'ARM_DOWN',
-  'BASE_LEFT',
-  'BASE_RIGHT',
+  'WRIST_UP',
+  'WRIST_DOWN',
   'STOP',
 ] as const;
 
