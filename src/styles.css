@@ -765,6 +765,174 @@ input[type='url'] {
   white-space: pre;
 }
 
+/* ------------------------------------------------ 수업(발표) 모드 */
+.present-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: #10141c;
+  color: #f2f5fa;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px 24px;
+}
+
+.present-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.present-title {
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+
+.present-topbar-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.present-overlay .stop-button {
+  font-size: 1.4rem;
+  min-height: 56px;
+  min-width: 150px;
+}
+
+.present-main {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 24px;
+  flex: 1;
+  min-height: 0;
+}
+
+@media (max-width: 860px) {
+  .present-main {
+    grid-template-columns: 1fr;
+  }
+}
+
+.present-video-wrap {
+  position: relative;
+  background: #000;
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+
+.present-video-wrap video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.present-side {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 22px;
+  min-width: 0;
+}
+
+.present-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 20px;
+  background: #1a2130;
+  border-radius: 14px;
+}
+
+.present-caption {
+  font-size: 1rem;
+  color: #93a3c0;
+}
+
+.present-label-name {
+  font-size: 3.4rem;
+  font-weight: 800;
+  line-height: 1.15;
+  word-break: break-all;
+}
+
+.present-prob {
+  font-size: 1.7rem;
+  color: #8fd8a8;
+  font-weight: 700;
+}
+
+.present-command-name {
+  font-size: 1.25rem;
+  color: #aebcd8;
+}
+
+.present-last-sent {
+  font-size: 2.1rem;
+  font-weight: 800;
+  font-family: 'Consolas', 'D2Coding', monospace;
+  word-break: break-all;
+}
+
+.present-auto {
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.present-auto.is-on {
+  color: #8fd8a8;
+}
+
+/* ------------------------------------------------ 명령 전송 피드백 토스트 */
+.command-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 44px;
+  transform: translateX(-50%);
+  z-index: 200;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: 800;
+  padding: 14px 30px;
+  border-radius: 14px;
+  box-shadow: 0 8px 28px rgba(20, 40, 100, 0.45);
+  opacity: 0;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.command-toast.show {
+  animation: toast-pop 1.6s ease forwards;
+}
+
+@keyframes toast-pop {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.7);
+  }
+  12% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1.06);
+  }
+  22% {
+    transform: translateX(-50%) scale(1);
+  }
+  78% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) scale(1);
+  }
+}
+
 /* ------------------------------------------------ 푸터 */
 .app-footer {
   padding: 12px 20px 28px;

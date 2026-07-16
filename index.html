@@ -77,7 +77,7 @@
 
         <section class="card" aria-labelledby="webcam-heading">
           <h2 id="webcam-heading"><span class="step-badge">2</span> 웹캠으로 AI 판단 보기</h2>
-          <div class="webcam-wrap">
+          <div class="webcam-wrap" id="webcam-wrap">
             <video id="webcam" playsinline muted></video>
             <p class="webcam-placeholder" id="webcam-placeholder">📷 웹캠이 꺼져 있어요</p>
           </div>
@@ -88,6 +88,7 @@
               <input type="checkbox" id="mirror-webcam" checked />
               좌우 반전
             </label>
+            <button type="button" id="present-open" class="ghost-button">🖥 수업 모드</button>
           </div>
           <p class="inline-message hidden" id="webcam-message" role="alert"></p>
           <div class="top-label" id="top-label" aria-live="polite">
@@ -343,6 +344,39 @@
         전원은 외부 5V를 사용하고 아두이노와 GND를 공통 연결하세요.
       </p>
     </footer>
+
+    <!-- ================================================= 수업(발표) 모드 오버레이 -->
+    <div id="present-overlay" class="present-overlay hidden" role="dialog" aria-label="수업 모드">
+      <div class="present-topbar">
+        <span class="present-title">🦾 AI 로봇팔 컨트롤러</span>
+        <div class="present-topbar-buttons">
+          <button type="button" id="present-stop" class="stop-button">⏹ STOP</button>
+          <button type="button" id="present-close" class="ghost-button">✕ 닫기 (ESC)</button>
+        </div>
+      </div>
+      <div class="present-main">
+        <div class="present-video-wrap" id="present-video-wrap"></div>
+        <div class="present-side">
+          <div class="present-block">
+            <span class="present-caption">지금 AI의 판단</span>
+            <strong class="present-label-name" id="present-label-name">-</strong>
+            <span class="present-prob" id="present-label-prob"></span>
+            <span class="present-command-name" id="present-command"></span>
+          </div>
+          <div class="present-block">
+            <span class="present-caption">마지막 보낸 명령</span>
+            <code class="present-last-sent" id="present-last-sent">-</code>
+          </div>
+          <div class="present-block">
+            <span class="present-caption">자동 제어</span>
+            <span class="present-auto" id="present-auto">꺼짐</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 명령 전송 피드백 토스트 -->
+    <div id="command-toast" class="command-toast" role="status" aria-live="polite"></div>
 
     <script type="module" src="/src/main.ts"></script>
   </body>

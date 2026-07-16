@@ -29,6 +29,7 @@ export interface Elements {
   modelMessage: HTMLParagraphElement;
 
   webcam: HTMLVideoElement;
+  webcamWrap: HTMLDivElement;
   webcamPlaceholder: HTMLParagraphElement;
   startWebcam: HTMLButtonElement;
   stopWebcam: HTMLButtonElement;
@@ -85,6 +86,18 @@ export interface Elements {
   downloadCode: HTMLButtonElement;
   copyFeedback: HTMLSpanElement;
   arduinoCode: HTMLPreElement;
+
+  presentOpen: HTMLButtonElement;
+  presentOverlay: HTMLDivElement;
+  presentVideoWrap: HTMLDivElement;
+  presentLabelName: HTMLElement;
+  presentLabelProb: HTMLSpanElement;
+  presentCommand: HTMLSpanElement;
+  presentLastSent: HTMLElement;
+  presentAuto: HTMLSpanElement;
+  presentStop: HTMLButtonElement;
+  presentClose: HTMLButtonElement;
+  commandToast: HTMLDivElement;
 }
 
 export function getElements(): Elements {
@@ -109,6 +122,7 @@ export function getElements(): Elements {
     modelMessage: byId('model-message'),
 
     webcam: byId('webcam'),
+    webcamWrap: byId('webcam-wrap'),
     webcamPlaceholder: byId('webcam-placeholder'),
     startWebcam: byId('start-webcam'),
     stopWebcam: byId('stop-webcam'),
@@ -165,5 +179,17 @@ export function getElements(): Elements {
     downloadCode: byId('download-code'),
     copyFeedback: byId('copy-feedback'),
     arduinoCode: byId('arduino-code'),
+
+    presentOpen: byId('present-open'),
+    presentOverlay: byId('present-overlay'),
+    presentVideoWrap: byId('present-video-wrap'),
+    presentLabelName: byId('present-label-name'),
+    presentLabelProb: byId('present-label-prob'),
+    presentCommand: byId('present-command'),
+    presentLastSent: byId('present-last-sent'),
+    presentAuto: byId('present-auto'),
+    presentStop: byId('present-stop'),
+    presentClose: byId('present-close'),
+    commandToast: byId('command-toast'),
   };
 }

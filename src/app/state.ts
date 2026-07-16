@@ -29,6 +29,8 @@ export interface AppState {
   topPrediction: Prediction | null;
 
   lastSentCommand: string | null;
+  /** 마지막 명령 전송 시각(ms). 전송 피드백 표시용 */
+  lastSentAt: number | null;
   lastDeviceResponse: string | null;
 }
 
@@ -49,6 +51,7 @@ export function createInitialState(): AppState {
     predictions: [],
     topPrediction: null,
     lastSentCommand: null,
+    lastSentAt: null,
     lastDeviceResponse: null,
   };
 }

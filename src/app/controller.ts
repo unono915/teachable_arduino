@@ -454,7 +454,7 @@ export class AppController {
     }
     try {
       await transport.send(command);
-      this.state.patch({ lastSentCommand: command });
+      this.state.patch({ lastSentCommand: command, lastSentAt: Date.now() });
       const sourceLabel = source === 'auto' ? '자동' : source === 'stop' ? 'STOP' : '수동';
       this.logs.add('tx', `${sourceLabel} 명령 전송`, command);
       if (this.settings.auto.requireAck && command !== STOP_COMMAND) {

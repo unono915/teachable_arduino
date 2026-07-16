@@ -17,7 +17,9 @@ import {
   renderPredictions,
   setInlineMessage,
 } from './ui/render';
-import { MESSAGES } from './ui/messages';
+import { COMMAND_LABELS, MESSAGES } from './ui/messages';
+import { NONE_COMMAND } from './serial/protocol';
+import { labelKey } from './settings/storage';
 
 function detectStorage(): StorageLike | null {
   try {
@@ -168,7 +170,7 @@ function boot(): void {
   function updateChecklist(state: AppState): void {
     const mapping = controller.getCurrentMapping();
     const hasCommand = Object.values(mapping).some(
-      (command) => command !== 'NONE' && command !== '',
+      (command) => command !== NONE_COMMAND && command !== '',
     );
     setCheckItem(el.checkModel, state.modelStatus === 'ready');
     setCheckItem(el.checkWebcam, state.webcamStatus === 'running');
@@ -176,9 +178,81 @@ function boot(): void {
     setCheckItem(el.checkMapping, hasCommand);
   }
 
+  // ------------------------------------------------ 수업(발표) 모드
+  let presenting = false;
+
+  function enterPresentation(): void {
+    presenting = true;
+    el.presentOverlay.classList.remove('hidden');
+    // 웹캠 비디오 요소를 오버레이로 옮긴다. (스트림은 그대로 유지된다)
+    el.presentVideoWrap.appendChild(el.webcam);
+    renderPresentation(controller.state.get());
+  }
+
+  function exitPresentation(): void {
+    presenting = false;
+    el.presentOverlay.classList.add('hidden');
+    el.webcamWrap.insertBefore(el.webcam, el.webcamPlaceholder);
+  }
+
+  function renderPresentation(state: AppState): void {
+    if (!presenting) {
+      return;
+    }
+    const top = state.topPrediction;
+    el.presentLabelName.textContent = top ? top.className : '-';
+    el.presentLabelProb.textContent = top ? `${(top.probability * 100).toFixed(1)}%` : '';
+    let mappedText = '';
+    if (top) {
+      const index = state.labels.indexOf(top.className);
+      const mapping = controller.getCurrentMapping();
+      const command = mapping[labelKey(index, top.className)] ?? NONE_COMMAND;
+      mappedText = `연결된 동작: ${COMMAND_LABELS[command] ?? command} (${command})`;
+    }
+    el.presentCommand.textContent = mappedText;
+    el.presentLastSent.textContent = state.lastSentCommand ?? '-';
+    el.presentAuto.textContent = state.autoStatus === 'on' ? '켜짐' : '꺼짐';
+    el.presentAuto.classList.toggle('is-on', state.autoStatus === 'on');
+  }
+
+  el.presentOpen.addEventListener('click', () => {
+    enterPresentation();
+  });
+  el.presentClose.addEventListener('click', () => {
+    exitPresentation();
+  });
+  el.presentStop.addEventListener('click', () => {
+    void controller.emergencyStop();
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && presenting) {
+      exitPresentation();
+    }
+  });
+
+  // ------------------------------------------------ 명령 전송 피드백 토스트
+  let lastToastAt: number | null = null;
+
+  function showCommandToast(command: string): void {
+    const label = COMMAND_LABELS[command];
+    el.commandToast.textContent = label ? `📤 ${label} (${command})` : `📤 ${command}`;
+    // 연속 전송 시에도 애니메이션이 다시 시작되도록 클래스를 재적용한다.
+    el.commandToast.classList.remove('show');
+    void el.commandToast.offsetWidth;
+    el.commandToast.classList.add('show');
+  }
+
   controller.state.subscribe((state) => {
     renderBadges(el, state);
     renderPredictions(el, state, controller.getCurrentMapping());
+    renderPresentation(state);
+
+    if (state.lastSentAt !== null && state.lastSentAt !== lastToastAt) {
+      lastToastAt = state.lastSentAt;
+      if (state.lastSentCommand) {
+        showCommandToast(state.lastSentCommand);
+      }
+    }
 
     if (state.labels !== renderedLabels) {
       refreshMappingRows(state);
