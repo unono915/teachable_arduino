@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI 로봇팔 컨트롤러</title>
+    <meta
+      name="description"
+      content="Teachable Machine 이미지 모델로 아두이노 로봇팔을 제어하는 수업용 웹앱"
+    />
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="app-title">
+        <h1>AI 로봇팔 컨트롤러</h1>
+        <p class="subtitle">Teachable Machine + Web Serial</p>
+      </div>
+      <div class="status-badges" role="status" aria-live="polite">
+        <span class="badge" id="badge-browser">브라우저: 확인 중</span>
+        <span class="badge" id="badge-model">AI 모델: 없음</span>
+        <span class="badge" id="badge-webcam">웹캠: 대기</span>
+        <span class="badge" id="badge-device">아두이노: 연결 안 됨</span>
+        <span class="badge" id="badge-auto">자동 제어: 꺼짐</span>
+      </div>
+      <button type="button" id="header-stop" class="stop-button" title="자동 제어를 끄고 STOP 명령을 보냅니다">
+        ⏹ STOP
+      </button>
+    </header>
+
+    <p class="support-banner hidden" id="support-banner"></p>
+
+    <main class="layout">
+      <!-- ------------------------------------------------ 왼쪽 영역 -->
+      <div class="column">
+        <section class="card" aria-labelledby="model-heading">
+          <h2 id="model-heading">1. AI 모델 불러오기</h2>
+          <label for="model-url">Teachable Machine 모델 URL</label>
+          <div class="row">
+            <input
+              type="url"
+              id="model-url"
+              placeholder="https://teachablemachine.withgoogle.com/models/모델ID/"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <button type="button" id="load-model">모델 불러오기</button>
+          </div>
+          <p class="help">
+            Teachable Machine에서 [모델 내보내기 → 업로드(공유 가능한 링크)]로 만든 URL을
+            붙여넣으세요.
+          </p>
+          <p class="inline-message hidden" id="model-message" role="alert"></p>
+        </section>
+
+        <section class="card" aria-labelledby="webcam-heading">
+          <h2 id="webcam-heading">2. 웹캠과 AI 판단 결과</h2>
+          <div class="webcam-wrap">
+            <video id="webcam" playsinline muted></video>
+            <p class="webcam-placeholder" id="webcam-placeholder">웹캠이 꺼져 있습니다</p>
+          </div>
+          <div class="row">
+            <button type="button" id="start-webcam">웹캠 시작</button>
+            <button type="button" id="stop-webcam" disabled>웹캠 중지</button>
+            <label class="checkbox-label" for="mirror-webcam">
+              <input type="checkbox" id="mirror-webcam" checked />
+              좌우 반전
+            </label>
+          </div>
+          <p class="inline-message hidden" id="webcam-message" role="alert"></p>
+          <div class="top-label" id="top-label" aria-live="polite">
+            <span class="top-label-caption">최고 확률 라벨</span>
+            <strong id="top-label-name">-</strong>
+            <span id="top-label-prob"></span>
+          </div>
+          <ul class="predictions" id="predictions" aria-label="라벨별 확률"></ul>
+        </section>
+      </div>
+
+      <!-- ------------------------------------------------ 오른쪽 영역 -->
+      <div class="column">
+        <section class="card" aria-labelledby="mapping-heading">
+          <h2 id="mapping-heading">3. 라벨과 로봇 동작 연결</h2>
+          <p class="help">
+            AI가 각 라벨을 인식했을 때 로봇팔이 할 동작을 고르세요. 기본값은 동작
+            없음(NONE)입니다.
+          </p>
+          <div id="mapping-rows" class="mapping-rows">
+            <p class="placeholder">모델을 불러오면 라벨 목록이 나타납니다.</p>
+          </div>
+          <div class="row">
+            <button type="button" id="reset-mapping" disabled>매핑 초기화</button>
+          </div>
+        </section>
+
+        <section class="card" aria-labelledby="serial-heading">
+          <h2 id="serial-heading">4. 아두이노 연결</h2>
+          <fieldset class="transport-choice">
+            <legend>장치 종류</legend>
+            <label class="radio-label" for="transport-real">
+              <input type="radio" name="transport" id="transport-real" value="real" checked />
+              실제 아두이노
+            </label>
+            <label class="radio-label" for="transport-mock">
+              <input type="radio" name="transport" id="transport-mock" value="mock" />
+              모의 장치 (아두이노 없이 시험)
+            </label>
+          </fieldset>
+          <p class="mock-banner hidden" id="mock-banner"></p>
+          <div class="row">
+            <label for="baud-rate">통신 속도(Baud rate)</label>
+            <select id="baud-rate">
+              <option value="9600" selected>9600</option>
+              <option value="57600">57600</option>
+              <option value="115200">115200</option>
+            </select>
+            <button type="button" id="connect-device">연결</button>
+            <button type="button" id="disconnect-device" disabled>연결 해제</button>
+          </div>
+          <p class="help" id="serial-conflict-help"></p>
+          <p class="inline-message hidden" id="serial-message" role="alert"></p>
+        </section>
+
+        <section class="card" aria-labelledby="manual-heading">
+          <h2 id="manual-heading">5. 수동 제어 (하드웨어 시험)</h2>
+          <p class="help">자동 제어를 켜기 전에 버튼으로 각 동작을 먼저 시험하세요.</p>
+          <div class="manual-grid" id="manual-buttons">
+            <button type="button" data-command="HOME">기본 자세<br /><code>HOME</code></button>
+            <button type="button" data-command="GRAB">물체 잡기<br /><code>GRAB</code></button>
+            <button type="button" data-command="RELEASE">물체 놓기<br /><code>RELEASE</code></button>
+            <button type="button" data-command="ARM_UP">팔 올리기<br /><code>ARM_UP</code></button>
+            <button type="button" data-command="ARM_DOWN">팔 내리기<br /><code>ARM_DOWN</code></button>
+            <button type="button" data-command="BASE_LEFT">왼쪽 회전<br /><code>BASE_LEFT</code></button>
+            <button type="button" data-command="BASE_RIGHT">오른쪽 회전<br /><code>BASE_RIGHT</code></button>
+            <button type="button" id="manual-stop" class="stop-button">⏹ STOP<br /><code>STOP</code></button>
+          </div>
+          <p class="help" id="manual-hint"></p>
+        </section>
+
+        <section class="card" aria-labelledby="auto-heading">
+          <h2 id="auto-heading">6. AI 자동 제어</h2>
+          <div class="row">
+            <button type="button" id="toggle-auto" class="auto-button">자동 제어 켜기</button>
+            <button type="button" id="rearm">재무장 (같은 명령 다시 보내기)</button>
+          </div>
+          <p class="help" id="auto-hint"></p>
+          <div class="settings-grid">
+            <label for="threshold">
+              동작 확률 기준 (Threshold): <output id="threshold-value">0.80</output>
+            </label>
+            <input type="range" id="threshold" min="0.5" max="0.99" step="0.01" value="0.8" />
+            <label for="stable-ms">라벨 안정화 시간 (ms)</label>
+            <input type="number" id="stable-ms" min="200" max="3000" step="100" value="700" />
+            <label for="cooldown-ms">다음 명령까지 기다리는 시간 (ms)</label>
+            <input type="number" id="cooldown-ms" min="500" max="10000" step="100" value="1500" />
+            <label class="checkbox-label" for="require-ack">
+              <input type="checkbox" id="require-ack" checked />
+              장치 응답(ACK/DONE) 사용
+            </label>
+          </div>
+          <p class="safety-note">⚠ 로봇팔이 움직일 때 관절과 집게 사이에 손을 넣지 마세요.</p>
+        </section>
+
+        <section class="card" aria-labelledby="status-heading">
+          <h2 id="status-heading">7. 상태와 로그</h2>
+          <div class="status-cards">
+            <div class="status-card">
+              <span class="status-card-caption">마지막 송신 명령</span>
+              <code id="last-sent">-</code>
+            </div>
+            <div class="status-card">
+              <span class="status-card-caption">마지막 장치 응답</span>
+              <code id="last-response">-</code>
+            </div>
+            <div class="status-card">
+              <span class="status-card-caption">장치 작업 상태</span>
+              <span id="device-activity">대기</span>
+            </div>
+          </div>
+          <div class="row log-controls">
+            <button type="button" id="clear-logs">로그 지우기</button>
+            <label class="checkbox-label" for="autoscroll">
+              <input type="checkbox" id="autoscroll" checked />
+              자동 스크롤
+            </label>
+          </div>
+          <ul class="log-list" id="log-list" aria-label="송수신 로그"></ul>
+        </section>
+      </div>
+    </main>
+
+    <footer class="app-footer">
+      <p>
+        웹캠 영상과 AI 추론은 모두 브라우저 안에서 처리되며 서버로 전송되지 않습니다. · 모터
+        전원은 외부 5V를 사용하고 아두이노와 GND를 공통 연결하세요.
+      </p>
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

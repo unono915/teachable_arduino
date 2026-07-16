@@ -1,0 +1,27 @@
+{
+  "name": "ai-robot-arm-controller",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Teachable Machine 이미지 모델로 아두이노 로봇팔을 제어하는 수업용 웹앱",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@tensorflow/tfjs": "^4.22.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.30.0",
+    "@types/node": "^22.15.0",
+    "eslint": "^9.30.0",
+    "typescript": "~5.8.3",
+    "typescript-eslint": "^8.35.0",
+    "vite": "^7.0.0",
+    "vitest": "^3.2.4"
+  }
+}
