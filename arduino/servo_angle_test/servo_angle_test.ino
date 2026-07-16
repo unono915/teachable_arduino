@@ -1,35 +1,26 @@
 /*
- * 서보모터 각도 확인(캘리브레이션) 스케치
- * ========================================
+ * 서보모터 각도 확인(캘리브레이션) 스케치 - 관절 묶음 버전
+ * =========================================================
  *
- * 조립된 로봇팔에서 서보 하나하나를 원하는 각도로 움직여 보면서
- * 각 관절의 방향과 자세를 확인하는 용도입니다.
+ * 관절(어깨+팔꿈치+손목, D3 공통 신호)과 집게(D5)를 각각 원하는 각도로
+ * 움직여 보면서 방향과 자세를 확인하는 용도입니다.
  *
  * 사용 방법: 시리얼 모니터(9600, "새 줄" 설정)에 명령을 입력하세요.
  *
- *   S 90   → 어깨(Shoulder)를 90도로
- *   E 45   → 팔꿈치(Elbow)를 45도로
- *   W 120  → 손목(Wrist)을 120도로
+ *   A 60   → 관절 3개를 함께 60도로 (Arm)
  *   G 30   → 집게(Gripper)를 30도로
- *   A 0    → 모든 서보를 0도로
  *   ?      → 현재 각도 출력
  *
- *   (공백 없이 S90 처럼 입력해도 됩니다. 각도 범위: 0~180)
+ *   (공백 없이 A60 처럼 입력해도 됩니다. 각도 범위: 0~180)
  *
- * 이렇게 알아낸 각도를 robot_arm_serial_example.ino 상단의
- * HOME_SHOULDER / HOME_ELBOW / HOME_WRIST, GRIPPER_OPEN / GRIPPER_CLOSED,
- * MIN_… / MAX_… 상수에 옮겨 적으세요.
- *
- * 팁: 팔이 "바깥쪽으로 서야 하는데 안쪽으로 말리는" 경우
- *   서보는 몸통 기준 반대 방향으로 도는 것이므로, 그 관절은
- *   각도를 "180 - 원하는각도"로 생각하면 됩니다.
- *   예) 어깨를 45도만큼 세우고 싶은데 안쪽으로 말리면 S 135를 시험해 보세요.
- *   방향이 반대인 관절은 본 스케치(robot_arm_serial_example.ino)에서
- *   ARM_UP/WRIST_UP의 +를 -로 바꾸고, HOME 각도도 그 방향 기준으로 정하세요.
+ * 조립 기준: 관절 90도 = 팔이 밑판에서 수직 1직선으로 선 자세.
+ *   A 60, A 120처럼 90 양쪽으로 움직여 보며 구부러지는 방향을 확인하고,
+ *   알아낸 각도를 robot_arm_serial_example.ino 상단의
+ *   HOME_ARM, MIN_ARM/MAX_ARM, GRIPPER_OPEN/GRIPPER_CLOSED에 옮겨 적으세요.
  *
  * ★★★ 전원 경고 ★★★
- *   서보는 외부 5V 전원으로 구동하고, 외부 전원의 GND와
- *   아두이노의 GND를 반드시 공통으로 연결하세요.
+ *   관절 3개가 동시에 움직여 순간 전류가 큽니다. 서보는 외부 5V 전원으로
+ *   구동하고, 외부 전원의 GND와 아두이노의 GND를 반드시 공통 연결하세요.
  *
  * ★ 안전 ★
  *   서보가 천천히(1도씩) 움직이도록 되어 있지만, 큰 각도를 입력하면
@@ -39,23 +30,20 @@
 #include <Servo.h>
 
 // ------------------------------------------------ 핀 설정 (본 스케치와 동일)
-const uint8_t PIN_SERVO_SHOULDER = 5;   // 어깨
-const uint8_t PIN_SERVO_ELBOW    = 6;   // 팔꿈치
-const uint8_t PIN_SERVO_WRIST    = 9;   // 손목
-const uint8_t PIN_SERVO_GRIPPER  = 10;  // 집게
+const uint8_t PIN_SERVO_ARM     = 3;  // 관절 3개(어깨+팔꿈치+손목) 공통 신호
+const uint8_t PIN_SERVO_GRIPPER = 5;  // 집게
 
-// 시작 각도: 조립 기준 자세(0도)
-const uint8_t START_ANGLE = 0;
+// 시작 각도: 조립 기준 자세(관절 90도 = 곧게 선 자세)
+const uint8_t START_ARM_ANGLE     = 90;
+const uint8_t START_GRIPPER_ANGLE = 90;
 
 // 1도 움직일 때마다 기다리는 시간(ms). 클수록 천천히 움직인다.
-const uint16_t STEP_INTERVAL_MS = 15;
+const uint16_t STEP_INTERVAL_MS = 20;
 
-Servo servoShoulder, servoElbow, servoWrist, servoGripper;
+Servo servoArm, servoGripper;
 
-uint8_t angleShoulder = START_ANGLE;
-uint8_t angleElbow    = START_ANGLE;
-uint8_t angleWrist    = START_ANGLE;
-uint8_t angleGripper  = START_ANGLE;
+uint8_t angleArm     = START_ARM_ANGLE;
+uint8_t angleGripper = START_GRIPPER_ANGLE;
 
 String inputBuffer = "";
 
@@ -76,16 +64,14 @@ void moveSlowly(Servo &servo, uint8_t &current, uint8_t target, const __FlashStr
 
 void printAngles() {
   Serial.println(F("---- 현재 각도 ----"));
-  Serial.print(F("S 어깨    : ")); Serial.println(angleShoulder);
-  Serial.print(F("E 팔꿈치  : ")); Serial.println(angleElbow);
-  Serial.print(F("W 손목    : ")); Serial.println(angleWrist);
-  Serial.print(F("G 집게    : ")); Serial.println(angleGripper);
+  Serial.print(F("A 관절(3개 공통) : ")); Serial.println(angleArm);
+  Serial.print(F("G 집게           : ")); Serial.println(angleGripper);
   Serial.println(F("-------------------"));
 }
 
 void printHelp() {
-  Serial.println(F("명령: S/E/W/G/A + 각도(0~180), ? = 현재 각도"));
-  Serial.println(F("예)  S 90  → 어깨 90도,  A 0 → 전부 0도"));
+  Serial.println(F("명령: A/G + 각도(0~180), ? = 현재 각도"));
+  Serial.println(F("예)  A 60 → 관절 60도(구부리기),  A 90 → 곧게 서기,  G 30 → 집게 30도"));
 }
 
 // ------------------------------------------------ 명령 처리
@@ -120,26 +106,14 @@ void processLine(String line) {
   }
 
   switch (target) {
-    case 'S':
-      moveSlowly(servoShoulder, angleShoulder, (uint8_t)angle, F("어깨"));
-      break;
-    case 'E':
-      moveSlowly(servoElbow, angleElbow, (uint8_t)angle, F("팔꿈치"));
-      break;
-    case 'W':
-      moveSlowly(servoWrist, angleWrist, (uint8_t)angle, F("손목"));
+    case 'A':
+      moveSlowly(servoArm, angleArm, (uint8_t)angle, F("관절"));
       break;
     case 'G':
       moveSlowly(servoGripper, angleGripper, (uint8_t)angle, F("집게"));
       break;
-    case 'A':
-      moveSlowly(servoShoulder, angleShoulder, (uint8_t)angle, F("어깨"));
-      moveSlowly(servoElbow, angleElbow, (uint8_t)angle, F("팔꿈치"));
-      moveSlowly(servoWrist, angleWrist, (uint8_t)angle, F("손목"));
-      moveSlowly(servoGripper, angleGripper, (uint8_t)angle, F("집게"));
-      break;
     default:
-      Serial.print(F("알 수 없는 서보: "));
+      Serial.print(F("알 수 없는 대상: "));
       Serial.println(target);
       printHelp();
       return;
@@ -151,17 +125,13 @@ void processLine(String line) {
 void setup() {
   Serial.begin(9600);
 
-  servoShoulder.attach(PIN_SERVO_SHOULDER);
-  servoElbow.attach(PIN_SERVO_ELBOW);
-  servoWrist.attach(PIN_SERVO_WRIST);
+  servoArm.attach(PIN_SERVO_ARM);
   servoGripper.attach(PIN_SERVO_GRIPPER);
 
-  servoShoulder.write(START_ANGLE);
-  servoElbow.write(START_ANGLE);
-  servoWrist.write(START_ANGLE);
-  servoGripper.write(START_ANGLE);
+  servoArm.write(START_ARM_ANGLE);
+  servoGripper.write(START_GRIPPER_ANGLE);
 
-  Serial.println(F("서보 각도 확인 스케치 준비 완료. (시작 각도 0도)"));
+  Serial.println(F("서보 각도 확인 스케치 준비 완료. (관절/집게 90도)"));
   printHelp();
 }
 

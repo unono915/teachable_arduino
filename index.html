@@ -223,10 +223,8 @@
             <button type="button" data-command="HOME">🏠 기본 자세<br /><code>HOME</code></button>
             <button type="button" data-command="GRAB">✊ 물체 잡기<br /><code>GRAB</code></button>
             <button type="button" data-command="RELEASE">✋ 물체 놓기<br /><code>RELEASE</code></button>
-            <button type="button" data-command="ARM_UP">⬆ 팔 올리기<br /><code>ARM_UP</code></button>
-            <button type="button" data-command="ARM_DOWN">⬇ 팔 내리기<br /><code>ARM_DOWN</code></button>
-            <button type="button" data-command="WRIST_UP">↗ 손목 올리기<br /><code>WRIST_UP</code></button>
-            <button type="button" data-command="WRIST_DOWN">↘ 손목 내리기<br /><code>WRIST_DOWN</code></button>
+            <button type="button" data-command="ARM_UP">⬆ 팔 펴기<br /><code>ARM_UP</code></button>
+            <button type="button" data-command="ARM_DOWN">⬇ 팔 구부리기<br /><code>ARM_DOWN</code></button>
             <button type="button" id="manual-stop" class="stop-button">⏹ STOP<br /><code>STOP</code></button>
           </div>
           <p class="help" id="manual-hint"></p>
@@ -307,17 +305,17 @@
               <tr><th>상수 이름</th><th>의미</th></tr>
             </thead>
             <tbody>
-              <tr><td><code>HOME_SHOULDER / ELBOW / WRIST</code></td><td>기본 자세의 관절 각도</td></tr>
-              <tr><td><code>GRIPPER_OPEN / GRIPPER_CLOSED</code></td><td>집게가 열리고 닫히는 각도</td></tr>
-              <tr><td><code>ARM_STEP_DEGREES</code></td><td>팔 올리기/내리기 한 번에 움직이는 양</td></tr>
-              <tr><td><code>WRIST_STEP_DEGREES</code></td><td>손목 올리기/내리기 한 번에 움직이는 양</td></tr>
-              <tr><td><code>MIN_… / MAX_…</code></td><td>관절이 움직일 수 있는 안전 범위</td></tr>
+              <tr><td><code>HOME_ARM</code></td><td>기본 자세의 관절 각도 (90 = 곧게 선 자세)</td></tr>
+              <tr><td><code>GRIPPER_OPEN / GRIPPER_CLOSED</code></td><td>집게가 벌어지고 오므라지는 각도</td></tr>
+              <tr><td><code>ARM_STEP_DEGREES</code></td><td>팔 펴기/구부리기 한 번에 움직이는 양</td></tr>
+              <tr><td><code>MIN_ARM / MAX_ARM</code></td><td>관절이 움직일 수 있는 안전 범위</td></tr>
               <tr><td><code>SERVO_STEP_INTERVAL_MS</code></td><td>클수록 로봇팔이 천천히 움직임</td></tr>
             </tbody>
           </table>
           <p class="help">
-            기준 자세: 서보 0도에서 팔이 곧게 펴진 상태로 조립했어요. 움직임 방향이
-            반대라면 코드에서 <code>+</code>를 <code>-</code>로 바꿔 보세요.
+            기준 자세: 서보 90도에서 팔이 수직으로 곧게 선 상태로 조립했어요. 관절
+            3개(어깨·팔꿈치·손목)는 신호선을 묶어 같은 각도로 함께 움직입니다(D3).
+            집게는 따로 움직입니다(D5).
           </p>
           <p class="safety-note">
             ⚡ 서보 모터는 외부 5V 전원으로 구동하고, 외부 전원과 아두이노의 GND를 같이

@@ -12,10 +12,8 @@ export const COMMAND_LABELS: Record<string, string> = {
   HOME: '기본 자세',
   GRAB: '물체 잡기',
   RELEASE: '물체 놓기',
-  ARM_UP: '팔 올리기',
-  ARM_DOWN: '팔 내리기',
-  WRIST_UP: '손목 올리기',
-  WRIST_DOWN: '손목 내리기',
+  ARM_UP: '팔 펴기',
+  ARM_DOWN: '팔 구부리기',
   STOP: '동작 중지',
 };
 
