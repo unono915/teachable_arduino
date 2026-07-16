@@ -78,6 +78,7 @@ npm run build     # 프로덕션 빌드 (dist/)
 
 ## 아두이노 연결 방법
 
+0. (조립 전 1회) [arduino/servo_zero_setup/servo_zero_setup.ino](arduino/servo_zero_setup/servo_zero_setup.ino)를 업로드해 서보 4개를 모두 0도로 초기화한 뒤, 그 상태에서 로봇팔을 조립합니다. 시리얼 모니터에 0~180 숫자를 입력하면 모든 서보가 해당 각도로 움직여 조립 상태를 확인할 수 있습니다.
 1. [arduino/robot_arm_serial_example/robot_arm_serial_example.ino](arduino/robot_arm_serial_example/robot_arm_serial_example.ino)를 Arduino IDE로 열어 보드에 업로드합니다.
 2. **Arduino IDE의 시리얼 모니터를 닫습니다.** (포트를 점유하면 웹앱이 연결할 수 없습니다)
 3. 웹앱에서 장치 종류를 **실제 아두이노**로 선택하고 통신 속도 9600을 확인합니다.
