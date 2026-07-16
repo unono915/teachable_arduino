@@ -9,6 +9,13 @@ function byId<T extends HTMLElement>(id: string): T {
 }
 
 export interface Elements {
+  tabBtnControl: HTMLButtonElement;
+  tabBtnTest: HTMLButtonElement;
+  tabBtnCode: HTMLButtonElement;
+  panelControl: HTMLElement;
+  panelTest: HTMLElement;
+  panelCode: HTMLElement;
+
   badgeBrowser: HTMLSpanElement;
   badgeModel: HTMLSpanElement;
   badgeWebcam: HTMLSpanElement;
@@ -46,6 +53,14 @@ export interface Elements {
   manualButtons: HTMLDivElement;
   manualStop: HTMLButtonElement;
   manualHint: HTMLParagraphElement;
+  customCommand: HTMLInputElement;
+  sendCustom: HTMLButtonElement;
+  customCommandError: HTMLParagraphElement;
+
+  checkModel: HTMLLIElement;
+  checkWebcam: HTMLLIElement;
+  checkDevice: HTMLLIElement;
+  checkMapping: HTMLLIElement;
 
   toggleAuto: HTMLButtonElement;
   rearm: HTMLButtonElement;
@@ -59,13 +74,28 @@ export interface Elements {
   lastSent: HTMLElement;
   lastResponse: HTMLElement;
   deviceActivity: HTMLSpanElement;
+  lastSentTest: HTMLElement;
+  lastResponseTest: HTMLElement;
+  deviceActivityTest: HTMLSpanElement;
   clearLogs: HTMLButtonElement;
   autoscroll: HTMLInputElement;
   logList: HTMLUListElement;
+
+  copyCode: HTMLButtonElement;
+  downloadCode: HTMLButtonElement;
+  copyFeedback: HTMLSpanElement;
+  arduinoCode: HTMLPreElement;
 }
 
 export function getElements(): Elements {
   return {
+    tabBtnControl: byId('tab-btn-control'),
+    tabBtnTest: byId('tab-btn-test'),
+    tabBtnCode: byId('tab-btn-code'),
+    panelControl: byId('panel-control'),
+    panelTest: byId('panel-test'),
+    panelCode: byId('panel-code'),
+
     badgeBrowser: byId('badge-browser'),
     badgeModel: byId('badge-model'),
     badgeWebcam: byId('badge-webcam'),
@@ -103,6 +133,14 @@ export function getElements(): Elements {
     manualButtons: byId('manual-buttons'),
     manualStop: byId('manual-stop'),
     manualHint: byId('manual-hint'),
+    customCommand: byId('custom-command'),
+    sendCustom: byId('send-custom'),
+    customCommandError: byId('custom-command-error'),
+
+    checkModel: byId('check-model'),
+    checkWebcam: byId('check-webcam'),
+    checkDevice: byId('check-device'),
+    checkMapping: byId('check-mapping'),
 
     toggleAuto: byId('toggle-auto'),
     rearm: byId('rearm'),
@@ -116,8 +154,16 @@ export function getElements(): Elements {
     lastSent: byId('last-sent'),
     lastResponse: byId('last-response'),
     deviceActivity: byId('device-activity'),
+    lastSentTest: byId('last-sent-test'),
+    lastResponseTest: byId('last-response-test'),
+    deviceActivityTest: byId('device-activity-test'),
     clearLogs: byId('clear-logs'),
     autoscroll: byId('autoscroll'),
     logList: byId('log-list'),
+
+    copyCode: byId('copy-code'),
+    downloadCode: byId('download-code'),
+    copyFeedback: byId('copy-feedback'),
+    arduinoCode: byId('arduino-code'),
   };
 }

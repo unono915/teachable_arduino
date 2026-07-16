@@ -1,4 +1,5 @@
 import './styles.css';
+import arduinoSketchSource from '../arduino/robot_arm_serial_example/robot_arm_serial_example.ino?raw';
 import { AppController } from './app/controller';
 import type { AppState } from './app/state';
 import { SETTINGS_LIMITS } from './settings/defaults';
@@ -6,7 +7,7 @@ import type { StorageLike } from './settings/storage';
 import { isWebSerialSupported } from './serial/serialTransport';
 import { isWebcamSupported } from './model/webcam';
 import { LogStore } from './utils/logger';
-import { normalizeModelUrl } from './utils/validation';
+import { normalizeModelUrl, validateCustomCommand } from './utils/validation';
 import { clampNumber } from './utils/time';
 import { getElements } from './ui/elements';
 import {
@@ -70,6 +71,54 @@ function boot(): void {
 
   logs.add('system', 'AI 로봇팔 컨트롤러를 시작했습니다. 자동 제어는 꺼져 있습니다.');
 
+  // ------------------------------------------------ 탭 전환
+  const tabs: Array<{ button: HTMLButtonElement; panel: HTMLElement }> = [
+    { button: el.tabBtnControl, panel: el.panelControl },
+    { button: el.tabBtnTest, panel: el.panelTest },
+    { button: el.tabBtnCode, panel: el.panelCode },
+  ];
+
+  function selectTab(target: HTMLButtonElement): void {
+    for (const { button, panel } of tabs) {
+      const selected = button === target;
+      button.setAttribute('aria-selected', selected ? 'true' : 'false');
+      panel.classList.toggle('hidden', !selected);
+    }
+  }
+
+  for (const { button } of tabs) {
+    button.addEventListener('click', () => {
+      selectTab(button);
+    });
+  }
+
+  // ------------------------------------------------ 아두이노 코드 탭
+  el.arduinoCode.textContent = arduinoSketchSource;
+  el.copyCode.addEventListener('click', () => {
+    void navigator.clipboard
+      .writeText(arduinoSketchSource)
+      .then(() => {
+        el.copyFeedback.textContent = '✅ 복사했어요!';
+      })
+      .catch(() => {
+        el.copyFeedback.textContent = '복사에 실패했습니다. 코드를 드래그해서 복사하세요.';
+      })
+      .then(() => {
+        setTimeout(() => {
+          el.copyFeedback.textContent = '';
+        }, 2500);
+      });
+  });
+  el.downloadCode.addEventListener('click', () => {
+    const blob = new Blob([arduinoSketchSource], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'robot_arm_serial_example.ino';
+    anchor.click();
+    URL.revokeObjectURL(url);
+  });
+
   // ------------------------------------------------ 저장된 설정 반영
   el.modelUrl.value = settings.lastModelUrl;
   el.mirrorWebcam.checked = settings.mirrorWebcam;
@@ -89,6 +138,7 @@ function boot(): void {
     buildMappingRows(el.mappingRows, state.labels, controller.getCurrentMapping(), {
       onCommandChange(index, label, command) {
         controller.setLabelCommand(index, label, command);
+        updateChecklist(controller.state.get());
         updateAutoHint(controller.state.get());
       },
     });
@@ -96,14 +146,34 @@ function boot(): void {
   }
 
   function updateAutoHint(state: AppState): void {
+    const check = controller.canEnableAutoControl();
     if (state.autoStatus === 'on') {
       el.autoHint.textContent = 'AI 판단 결과로 로봇팔이 움직입니다. 위험하면 STOP을 누르세요.';
-      return;
+    } else {
+      el.autoHint.textContent = check.ok
+        ? '준비 완료! 자동 제어를 켤 수 있습니다.'
+        : `아직 켤 수 없어요: ${check.message ?? ''}`;
     }
-    const check = controller.canEnableAutoControl();
-    el.autoHint.textContent = check.ok
-      ? '준비되었습니다. 자동 제어를 켤 수 있습니다.'
-      : `켤 수 없는 이유: ${check.message ?? ''}`;
+    el.toggleAuto.disabled = state.autoStatus !== 'on' && !check.ok;
+  }
+
+  function setCheckItem(item: HTMLLIElement, done: boolean): void {
+    item.classList.toggle('done', done);
+    const mark = item.querySelector<HTMLElement>('.check-mark');
+    if (mark) {
+      mark.textContent = done ? '✅' : '⬜';
+    }
+  }
+
+  function updateChecklist(state: AppState): void {
+    const mapping = controller.getCurrentMapping();
+    const hasCommand = Object.values(mapping).some(
+      (command) => command !== 'NONE' && command !== '',
+    );
+    setCheckItem(el.checkModel, state.modelStatus === 'ready');
+    setCheckItem(el.checkWebcam, state.webcamStatus === 'running');
+    setCheckItem(el.checkDevice, state.deviceStatus === 'connected');
+    setCheckItem(el.checkMapping, hasCommand);
   }
 
   controller.state.subscribe((state) => {
@@ -147,14 +217,27 @@ function boot(): void {
     }
 
     // 자동 제어
-    el.toggleAuto.textContent = state.autoStatus === 'on' ? '자동 제어 끄기' : '자동 제어 켜기';
+    el.toggleAuto.textContent =
+      state.autoStatus === 'on' ? '⏸ 자동 제어 끄기' : '🤖 자동 제어 켜기';
     el.toggleAuto.classList.toggle('is-on', state.autoStatus === 'on');
+    updateChecklist(state);
     updateAutoHint(state);
 
-    // 상태 카드
-    el.lastSent.textContent = state.lastSentCommand ?? '-';
-    el.lastResponse.textContent = state.lastDeviceResponse ?? '-';
-    el.deviceActivity.textContent = state.deviceActivity === 'busy' ? '동작 중 (BUSY)' : '대기';
+    // 직접 명령 보내기
+    const canSend = connected;
+    el.sendCustom.disabled = !canSend;
+    el.customCommand.disabled = !canSend;
+
+    // 상태 카드 (AI 제어 탭 + 테스트 탭)
+    const lastSentText = state.lastSentCommand ?? '-';
+    const lastResponseText = state.lastDeviceResponse ?? '-';
+    const activityText = state.deviceActivity === 'busy' ? '동작 중 (BUSY)' : '대기';
+    el.lastSent.textContent = lastSentText;
+    el.lastResponse.textContent = lastResponseText;
+    el.deviceActivity.textContent = activityText;
+    el.lastSentTest.textContent = lastSentText;
+    el.lastResponseTest.textContent = lastResponseText;
+    el.deviceActivityTest.textContent = activityText;
   });
 
   logs.subscribe((entries) => {
@@ -207,6 +290,7 @@ function boot(): void {
   el.resetMapping.addEventListener('click', () => {
     controller.resetMapping();
     refreshMappingRows(controller.state.get());
+    updateChecklist(controller.state.get());
     updateAutoHint(controller.state.get());
   });
 
@@ -250,6 +334,30 @@ function boot(): void {
   });
   el.manualStop.addEventListener('click', () => {
     void controller.emergencyStop();
+  });
+
+  function sendCustomCommand(): void {
+    const result = validateCustomCommand(el.customCommand.value);
+    if (!result.ok) {
+      setInlineMessage(
+        el.customCommandError,
+        '명령은 영문 대문자, 숫자, 밑줄(_), 하이픈(-)만 사용할 수 있습니다. (최대 32자)',
+      );
+      return;
+    }
+    setInlineMessage(el.customCommandError, null);
+    el.customCommand.value = result.command;
+    void controller.sendManualCommand(result.command);
+  }
+
+  el.sendCustom.addEventListener('click', () => {
+    sendCustomCommand();
+  });
+  el.customCommand.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      sendCustomCommand();
+    }
   });
   el.headerStop.addEventListener('click', () => {
     void controller.emergencyStop();

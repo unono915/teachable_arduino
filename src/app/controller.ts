@@ -505,7 +505,7 @@ export class AppController {
       return { ok: false, message: '웹캠을 먼저 시작하세요.' };
     }
     if (!this.transport || !this.transport.isConnected()) {
-      return { ok: false, message: '아두이노(또는 모의 장치)를 먼저 연결하세요.' };
+      return { ok: false, message: '연결·테스트 탭에서 아두이노(또는 모의 장치)를 연결하세요.' };
     }
     const mapping = this.getCurrentMapping();
     const hasCommand = Object.values(mapping).some(
