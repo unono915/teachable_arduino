@@ -49,19 +49,22 @@ const uint8_t PIN_SERVO_GRIPPER = 5;  // 집게 서보
 // HOME(기본 자세): 곧게 선 자세
 const uint8_t HOME_ARM = 90;
 
+// ARM_DOWN(구부리기) 목표 각도: 50도에서 집게가 딱 바닥에 닿는다. (실측 확정)
+const uint8_t ARM_BENT_ANGLE = 50;
+
 // 관절 안전 범위: 90(직립) ~ 10(최대 구부림). 이 범위를 벗어난 목표값은 잘라낸다.
 const uint8_t MIN_ARM = 10,  MAX_ARM = 90;
 
 // 집게: 90도 = 오므린 상태(시작), 120도 = 최대로 벌린 상태
+// ※ 물체를 잡을 때 서보가 계속 밀면서 떨리면(부하 걸림), GRIPPER_CLOSED를
+//    95~105처럼 물체 크기에 맞춰 키우세요. SG90은 부하를 감지하지 못하므로
+//    "물체를 살짝 무는 각도"에서 멈추게 하는 것이 정답입니다.
 const uint8_t MIN_GRIPPER = 90, MAX_GRIPPER = 120;
 const uint8_t GRIPPER_OPEN   = 120;  // RELEASE (서서히 벌리기)
 const uint8_t GRIPPER_CLOSED = 90;   // GRAB (서서히 오므리기)
 
-// ARM_UP / ARM_DOWN 한 번에 관절이 움직이는 각도 (예시값)
-const uint8_t ARM_STEP_DEGREES = 15;
-
-// 서보 이동 속도: 1도 움직일 때마다 기다리는 시간(ms). 클수록 천천히("서서히") 움직인다.
-const uint16_t SERVO_STEP_INTERVAL_MS = 20;
+// 서보 이동 속도: 1도 움직일 때마다 기다리는 시간(ms). 130이 실측으로 적당했음.
+const uint16_t SERVO_STEP_INTERVAL_MS = 130;
 
 // ------------------------------------------------------------------ 내부 상태
 Servo servoArm;      // 관절 3개가 이 하나의 신호를 함께 받는다.
@@ -98,11 +101,11 @@ void startCommand(const String &command) {
   } else if (command == "RELEASE") {
     targetGripper = clampAngle(GRIPPER_OPEN, MIN_GRIPPER, MAX_GRIPPER);
   } else if (command == "ARM_UP") {
-    // 관절 각도를 키워 팔을 편다. (최대 90 = 직립)
-    targetArm = clampAngle((int)targetArm + ARM_STEP_DEGREES, MIN_ARM, MAX_ARM);
+    // 팔을 곧게 편다. (90도 직립)
+    targetArm = clampAngle(HOME_ARM, MIN_ARM, MAX_ARM);
   } else if (command == "ARM_DOWN") {
-    // 관절 각도를 줄여 팔을 서서히 구부린다. (최소 10)
-    targetArm = clampAngle((int)targetArm - ARM_STEP_DEGREES, MIN_ARM, MAX_ARM);
+    // 팔을 서서히 구부려 집게가 바닥에 닿는 각도(50도)까지 내린다.
+    targetArm = clampAngle(ARM_BENT_ANGLE, MIN_ARM, MAX_ARM);
   }
   activeCommand = command;
   Serial.print(F("ACK:"));

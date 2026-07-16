@@ -305,11 +305,11 @@
               <tr><th>상수 이름</th><th>의미</th></tr>
             </thead>
             <tbody>
-              <tr><td><code>HOME_ARM</code></td><td>기본 자세의 관절 각도 (90 = 곧게 선 자세)</td></tr>
-              <tr><td><code>GRIPPER_OPEN / GRIPPER_CLOSED</code></td><td>집게가 벌어지고 오므라지는 각도</td></tr>
-              <tr><td><code>ARM_STEP_DEGREES</code></td><td>팔 펴기/구부리기 한 번에 움직이는 양</td></tr>
+              <tr><td><code>HOME_ARM</code></td><td>ARM_UP(펴기) 목표 각도 (90 = 곧게 선 자세)</td></tr>
+              <tr><td><code>ARM_BENT_ANGLE</code></td><td>ARM_DOWN(구부리기) 목표 각도 (50 = 집게가 바닥에 닿음)</td></tr>
+              <tr><td><code>GRIPPER_OPEN / GRIPPER_CLOSED</code></td><td>집게가 벌어지고 오므라지는 각도 (물체가 있으면 CLOSED를 물체 크기에 맞게 키우기)</td></tr>
               <tr><td><code>MIN_ARM / MAX_ARM</code></td><td>관절이 움직일 수 있는 안전 범위</td></tr>
-              <tr><td><code>SERVO_STEP_INTERVAL_MS</code></td><td>클수록 로봇팔이 천천히 움직임</td></tr>
+              <tr><td><code>SERVO_STEP_INTERVAL_MS</code></td><td>클수록 로봇팔이 천천히 움직임 (130 권장)</td></tr>
             </tbody>
           </table>
           <p class="help">
