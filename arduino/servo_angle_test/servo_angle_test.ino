@@ -1,6 +1,6 @@
 /*
- * 서보모터 각도 확인(캘리브레이션) 스케치 - 관절 묶음 버전
- * =========================================================
+ * 서보모터 각도 확인(테스트) 스케치 - 관절 묶음 버전
+ * ====================================================
  *
  * 관절(어깨+팔꿈치+손목, D3 공통 신호)과 집게(D5)를 각각 원하는 각도로
  * 움직여 보면서 방향과 자세를 확인하는 용도입니다.
@@ -8,23 +8,28 @@
  * 사용 방법: 시리얼 모니터(9600, "새 줄" 설정)에 명령을 입력하세요.
  *
  *   A 60   → 관절 3개를 함께 60도로 (Arm)
- *   G 30   → 집게(Gripper)를 30도로
+ *   A 90   → 곧게 선 자세로 복귀
+ *   G 120  → 집게(Gripper)를 120도로 (벌리기)
+ *   G 90   → 집게 오므리기
  *   ?      → 현재 각도 출력
  *
- *   (공백 없이 A60 처럼 입력해도 됩니다. 각도 범위: 0~180)
+ *   (공백 없이 A60 처럼 입력해도 됩니다)
  *
- * 조립 기준: 관절 90도 = 팔이 밑판에서 수직 1직선으로 선 자세.
- *   A 60, A 120처럼 90 양쪽으로 움직여 보며 구부러지는 방향을 확인하고,
- *   알아낸 각도를 robot_arm_serial_example.ino 상단의
- *   HOME_ARM, MIN_ARM/MAX_ARM, GRIPPER_OPEN/GRIPPER_CLOSED에 옮겨 적으세요.
+ * 조립 기준(확정값):
+ *   - 관절 90도 = 팔이 밑판에서 수직 1직선으로 선 자세
+ *   - 관절은 90에서 값을 줄이는 방향으로만 구부림 (한계 10도)
+ *   - 집게 90도 = 오므림, 120도 = 최대 벌림
+ *   안전을 위해 이 범위를 벗어난 입력은 자동으로 잘라냅니다.
+ *   (범위를 바꾸려면 아래 MIN_/MAX_ 상수를 수정하세요)
  *
  * ★★★ 전원 경고 ★★★
- *   관절 3개가 동시에 움직여 순간 전류가 큽니다. 서보는 외부 5V 전원으로
- *   구동하고, 외부 전원의 GND와 아두이노의 GND를 반드시 공통 연결하세요.
+ *   관절 3개가 동시에 움직여 순간 전류가 큽니다. 가능하면 서보는 외부
+ *   5V 전원(AA 4개 홀더 등)으로 구동하고, 외부 전원의 GND와 아두이노의
+ *   GND를 반드시 공통 연결하세요. USB 전원만 쓰면 아두이노가 리셋되어
+ *   시리얼 연결이 끊길 수 있습니다.
  *
  * ★ 안전 ★
- *   서보가 천천히(1도씩) 움직이도록 되어 있지만, 큰 각도를 입력하면
- *   팔이 크게 움직입니다. 관절과 집게 사이에 손을 넣지 마세요.
+ *   서보가 천천히(1도씩) 움직이지만, 관절과 집게 사이에 손을 넣지 마세요.
  */
 
 #include <Servo.h>
@@ -33,9 +38,12 @@
 const uint8_t PIN_SERVO_ARM     = 3;  // 관절 3개(어깨+팔꿈치+손목) 공통 신호
 const uint8_t PIN_SERVO_GRIPPER = 5;  // 집게
 
-// 시작 각도: 조립 기준 자세(관절 90도 = 곧게 선 자세)
-const uint8_t START_ARM_ANGLE     = 90;
-const uint8_t START_GRIPPER_ANGLE = 90;
+// ------------------------------------------------ 각도 설정 (확정값)
+const uint8_t START_ARM_ANGLE     = 90;  // 시작: 곧게 선 자세
+const uint8_t START_GRIPPER_ANGLE = 90;  // 시작: 오므린 상태
+
+const uint8_t MIN_ARM = 10,     MAX_ARM = 90;       // 관절 안전 범위
+const uint8_t MIN_GRIPPER = 90, MAX_GRIPPER = 120;  // 집게 안전 범위
 
 // 1도 움직일 때마다 기다리는 시간(ms). 클수록 천천히 움직인다.
 const uint16_t STEP_INTERVAL_MS = 20;
@@ -46,6 +54,14 @@ uint8_t angleArm     = START_ARM_ANGLE;
 uint8_t angleGripper = START_GRIPPER_ANGLE;
 
 String inputBuffer = "";
+
+// ------------------------------------------------ 유틸리티
+uint8_t clampAngle(long value, uint8_t minValue, uint8_t maxValue, bool &clamped) {
+  if (value < minValue) { clamped = true; return minValue; }
+  if (value > maxValue) { clamped = true; return maxValue; }
+  clamped = false;
+  return (uint8_t)value;
+}
 
 // ------------------------------------------------ 이동 (1도씩 천천히)
 void moveSlowly(Servo &servo, uint8_t &current, uint8_t target, const __FlashStringHelper *name) {
@@ -70,8 +86,11 @@ void printAngles() {
 }
 
 void printHelp() {
-  Serial.println(F("명령: A/G + 각도(0~180), ? = 현재 각도"));
-  Serial.println(F("예)  A 60 → 관절 60도(구부리기),  A 90 → 곧게 서기,  G 30 → 집게 30도"));
+  Serial.println(F("명령: A/G + 각도, ? = 현재 각도"));
+  Serial.println(F("예)  A 60 → 관절 구부리기,  A 90 → 곧게 서기"));
+  Serial.println(F("     G 120 → 집게 벌리기,   G 90 → 집게 오므리기"));
+  Serial.print(F("허용 범위: A ")); Serial.print(MIN_ARM); Serial.print(F("~")); Serial.print(MAX_ARM);
+  Serial.print(F(", G ")); Serial.print(MIN_GRIPPER); Serial.print(F("~")); Serial.println(MAX_GRIPPER);
 }
 
 // ------------------------------------------------ 명령 처리
@@ -87,9 +106,9 @@ void processLine(String line) {
   }
 
   char target = line.charAt(0);
-  long angle = line.substring(1).toInt();
   String rest = line.substring(1);
   rest.trim();
+  long angle = rest.toInt();
 
   bool isNumber = rest.length() > 0;
   for (unsigned int i = 0; i < rest.length() && isNumber; i += 1) {
@@ -98,20 +117,31 @@ void processLine(String line) {
     }
   }
 
-  if (!isNumber || angle < 0 || angle > 180) {
+  if (!isNumber) {
     Serial.print(F("잘못된 명령: "));
     Serial.println(line);
     printHelp();
     return;
   }
 
+  bool clamped = false;
   switch (target) {
-    case 'A':
-      moveSlowly(servoArm, angleArm, (uint8_t)angle, F("관절"));
+    case 'A': {
+      uint8_t safe = clampAngle(angle, MIN_ARM, MAX_ARM, clamped);
+      if (clamped) {
+        Serial.print(F("범위를 벗어나 ")); Serial.print(safe); Serial.println(F("도로 조정했습니다."));
+      }
+      moveSlowly(servoArm, angleArm, safe, F("관절"));
       break;
-    case 'G':
-      moveSlowly(servoGripper, angleGripper, (uint8_t)angle, F("집게"));
+    }
+    case 'G': {
+      uint8_t safe = clampAngle(angle, MIN_GRIPPER, MAX_GRIPPER, clamped);
+      if (clamped) {
+        Serial.print(F("범위를 벗어나 ")); Serial.print(safe); Serial.println(F("도로 조정했습니다."));
+      }
+      moveSlowly(servoGripper, angleGripper, safe, F("집게"));
       break;
+    }
     default:
       Serial.print(F("알 수 없는 대상: "));
       Serial.println(target);
@@ -131,7 +161,7 @@ void setup() {
   servoArm.write(START_ARM_ANGLE);
   servoGripper.write(START_GRIPPER_ANGLE);
 
-  Serial.println(F("서보 각도 확인 스케치 준비 완료. (관절/집게 90도)"));
+  Serial.println(F("서보 각도 테스트 준비 완료. (관절 90도 직립, 집게 90도 오므림)"));
   printHelp();
 }
 
